@@ -1,0 +1,10 @@
+[run]
+source = .
+omit =
+    # omit anything in virtual environment
+    setup.py
+    */venv/*
+    tests/*
+    */animal_classifier/config-3.8.py
+    */animal_classifier/config.py
+

@@ -1,0 +1,70 @@
+[tool.poetry]
+name = "animal_classifier"
+version = "0.0.1"
+description = "ML model to classify animals"
+license = "MIT"
+authors = ["Inaki Rabanillo"]
+readme = "README.md"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: Linux"
+]
+homepage = "https://github.com/InakiRaba91/animal_classifier"
+
+[tool.poetry.scripts]
+animal_classifier="animal_classifier.animal_classifier:main"
+
+[tool.poetry.dependencies]
+fastapi = "^0.68.1"
+fastapi-health = "^0.4.0"
+numpy = "^1.24"
+six = "^1.14.0"
+pyparsing = "^3.0.0"
+cycler = "^0.10.0"
+python-dateutil = "^2.8.1"
+joblib = "^1.0.0"
+pytest = "^6.0.0"
+rope = "^0.16.0" # package to development and refactoring python code
+coverage = "^6.0"
+python = "~3.11"
+tomlkit = "^0.7.2"
+uvicorn = "^0.15.0"
+prometheus-fastapi-instrumentator = "^5.7.1"
+torchvision = "0.15.2"
+python-decouple = "^3.4"
+torch = "2.0.1"
+nvidia-cublas-cu11 = { version = "11.10.3.66", platform = 'linux' }
+nvidia-cuda-cupti-cu11 = { version = "11.7.101", platform = 'linux' }
+nvidia-cuda-nvrtc-cu11 = { version = "11.7.99", platform = 'linux' }
+nvidia-cuda-runtime-cu11 = { version = "11.7.99", platform = 'linux' }
+nvidia-cudnn-cu11 = { version = "8.5.0.96", platform = 'linux' }
+nvidia-cufft-cu11 = { version = "10.9.0.58", platform = 'linux' }
+nvidia-curand-cu11 = { version = "10.2.10.91", platform = 'linux' }
+nvidia-cusolver-cu11 = { version = "11.4.0.1", platform = 'linux' }
+nvidia-cusparse-cu11 = { version = "11.7.4.91", platform = 'linux' }
+nvidia-nccl-cu11 = { version = "2.14.3", platform = 'linux' }
+nvidia-nvtx-cu11 = { version = "11.7.91", platform = 'linux' }
+pytest-env = "^0.6.2"
+typer = "^0.4.0"
+opencv-python = "4.5.5.64"
+scikit-learn = "^1.3.2"
+
+[tool.mypy]
+exclude = "tests"
+
+[tool.poetry.dev-dependencies]
+ipdb = "^0.13.7"
+ipykernel = "^5.5.3"
+jupyter = "^1.0.0"
+notebook = "^6.3.0"
+pre-commit = "^2.12.1"
+mypy = "^0.910"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+addopts = "-v -s"
+filterwarnings = ["ignore::DeprecationWarning"]
+env = ["ENV_STATE=TEST"]
