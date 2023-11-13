@@ -140,3 +140,6 @@ docs/*
 !docs/make.bat
 !docs/Makefile
 !docs/requirements.txt
+
+# VScode
+.vscode/
