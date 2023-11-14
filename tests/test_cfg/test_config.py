@@ -8,8 +8,8 @@ from animal_classifier.cfg.config import (
     EnvState,
     FactoryConfig,
     GlobalConfig,
-    StagingConfig,
     ProdConfig,
+    StagingConfig,
 )
 
 
