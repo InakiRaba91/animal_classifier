@@ -12,8 +12,10 @@ from warnings import simplefilter
 import cv2
 import numpy as np
 import pytest
+import torch
 
 from animal_classifier.cfg.config import StagingConfig
+from animal_classifier.model import AnimalNet, StateInfo
 from animal_classifier.utils.enums import AnimalLabel
 from animal_classifier.utils.image_size import ImageSize
 
@@ -110,6 +112,36 @@ def annotations_dir(data_dir: Path, labels: List[AnimalLabel]) -> str:
         with open(annotation_path, "w") as f:
             json.dump(annotation, f)
     return str(annotations_dir)
+
+
+@pytest.fixture
+def model_dir(tmpdir_factory) -> Path:
+    return tmpdir_factory.mktemp("models")
+
+
+@pytest.fixture
+def model() -> AnimalNet:
+    return AnimalNet()
+
+
+@pytest.fixture
+def state_info(model: AnimalNet) -> StateInfo:
+    return StateInfo(epoch=0, optimizer_state_dict=torch.optim.Adam(model.parameters()).state_dict(), loss=0.0)
+
+
+@pytest.fixture
+def model_fpath(model: AnimalNet, model_dir: Path, state_info: StateInfo) -> Path:
+    model_fpath = model_dir / "CatsAndDogsTest"
+    torch.save(
+        {
+            "epoch": state_info.epoch,
+            "model_state_dict": model.state_dict(),
+            "optimizer_state_dict": state_info.optimizer_state_dict,
+            "loss": state_info.loss,
+        },
+        f"{model_fpath}",
+    )
+    return Path(model_fpath)
 
 
 # Prevent pytest from trying to collect TestConfig as tests since it starts with Test
