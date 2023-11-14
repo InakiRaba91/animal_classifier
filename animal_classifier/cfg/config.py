@@ -13,98 +13,91 @@
       DEVICE: CPU/GPU
 """
 from enum import Enum
-from typing import Optional
 
-import torch
-from pydantic import BaseSettings, Field, validator
+from pydantic import field_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class EnvState(Enum):
     DEV = "DEV"
-    TEST = "TEST"
+    STAGING = "STAGING"
     PROD = "PROD"
 
 
 class GlobalConfig(BaseSettings):
     """
-    Global configuration, used by the dev, test and prod.
+    Global configuration, used by the dev, staging and prod.
 
     Attributes can be set using a .env file located in the package root directory or using env variables.
     Attributes are loaded using the following priority:
     Env variables > .env file > defaults
     """
 
-    #: The env state (dev, test or prod)
-    ENV_STATE: EnvState = Field(EnvState.DEV, env="ENV_STATE")
+    #: The env state (dev, staging or prod)
+    ENV_STATE: EnvState = EnvState.DEV
 
     # Default settings
     # The filepaths will need to be updated when implemented as kubeflow components / pipelines.
     MODEL_DIR: str = "./models/cats_and_dogs/"
-    ANNOTATIONS_DIR = "./data/cats_and_dogs/annotations/"
-    FRAMES_DIR = "./data/cats_and_dogs/frames/"
+    ANNOTATIONS_DIR: str = "./data/cats_and_dogs/annotations/"
+    FRAMES_DIR: str = "./data/cats_and_dogs/frames/"
     USE_CUDA: bool = False
-    DEVICE: Optional[torch.device]
+    DEVICE: "str" = "cpu"
     TRAIN_FRAC: float = 0.8
     VAL_FRAC: float = 0.1
     TEST_FRAC: float = 0.1
 
-    class Config:
-        env_file: str = ".env"
-        env_file_encoding: str = "utf-8"
-
-    @validator("ENV_STATE")
-    def assert_correct_env_state(cls, v):
-        string_env_state = cls.__name__[:-6].upper()
-        if string_env_state != "GLOBAL":
-            assert v == EnvState(string_env_state)
-        return v
+    # pydantic config
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        frozen=True,
+        extra="allow",
+    )
 
 
 class DevConfig(GlobalConfig):
-    """Dev Configuration
-    vars set in .env without prefix.
+    """
+    Dev Config
+    For local development
     """
 
-    class Config:
-        env_prefix = ""
+    @field_validator("ENV_STATE")
+    def assert_correct_env_state(cls, v):
+        assert v == EnvState.DEV
+        return v
 
 
-class TestConfig(GlobalConfig):
-    """Test Configuration
-    Set using the TEST prefix.
-    """
+class StagingConfig(GlobalConfig):
+    """Staging Configuration"""
 
-    class Config:
-        env_prefix = "TEST_"
+    @field_validator("ENV_STATE")
+    def assert_correct_env_state(cls, v):
+        assert v == EnvState.STAGING
+        return v
 
 
 class ProdConfig(GlobalConfig):
-    """Prod Configuration
-    Set using the PROD prefix.
-    """
+    """Prod Configuration"""
 
-    class Config:
-        env_prefix = "PROD_"
+    @field_validator("ENV_STATE")
+    def assert_correct_env_state(cls, v):
+        assert v == EnvState.PROD
+        return v
 
 
 class FactoryConfig:
-    """Returns a TestConfig instance dependending on the ENV_STATE variable.
+    """Returns a config instance dependending on the ENV_STATE variable.
 
     Attributes can be set in the .env file, or as env variables.
-    To set the test or prod TestConfig, you must define the vars with the prefix (followed by an underscore) TEST or PROD
-    respectively.
-    Setting the ENV_STATE to 'test', will load the TEST attributes (and similarly for prod).
-
     Attributes are loaded using the following priority:
         Env variables > .env file > defaults
 
     Example usage:
         ```bash
-        export ENV_STATE=prod
-        export PROD_MODEL=R50_FPN_3x
+        export ENV_STATE=serving
         ```
         ```python
-        cfg = FactoryConfig(GlobalConfig().ENV_STATE)()  # loads prod TestConfig with model as ModelYaml.R50_FPN_3x
+        cfg = FactoryConfig(GlobalConfig().ENV_STATE)()  # loads prod config
         ```
     """
 
@@ -112,9 +105,9 @@ class FactoryConfig:
         self.env_state = env_state
 
     def __call__(self):
-        if self.env_state == EnvState.TEST:
-            return TestConfig()
-        elif self.env_state == EnvState.DEV:
-            return DevConfig()
-        else:
+        if self.env_state == EnvState.STAGING:
+            return StagingConfig()
+        elif self.env_state == EnvState.PROD:
             return ProdConfig()
+        else:
+            return DevConfig()

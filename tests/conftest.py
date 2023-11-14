@@ -13,7 +13,7 @@ import cv2
 import numpy as np
 import pytest
 
-from animal_classifier.cfg.config import TestConfig
+from animal_classifier.cfg.config import StagingConfig
 from animal_classifier.utils.enums import AnimalLabel
 from animal_classifier.utils.image_size import ImageSize
 
@@ -114,4 +114,4 @@ def annotations_dir(data_dir: Path, labels: List[AnimalLabel]) -> str:
 
 # Prevent pytest from trying to collect TestConfig as tests since it starts with Test
 # Ref: https://adamj.eu/tech/2020/07/28/how-to-fix-a-pytest-collection-warning-about-web-tests-test-app-class/
-TestConfig.__test__ = False  # type: ignore
+StagingConfig.__test__ = False  # type: ignore

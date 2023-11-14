@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from typing import Tuple
+from typing import List, Optional, Tuple
 
 import cv2
 import numpy as np
@@ -33,11 +33,11 @@ class AnimalDataset(Dataset):
         frames_dir: str = cfg.FRAMES_DIR,
         annotations_dir: str = cfg.ANNOTATIONS_DIR,
         image_size: ImageSize = DEFAULT_IMAGE_SIZE,
-        frame_filenames: Tuple[str, ...] = None,
+        frame_filenames: Optional[Tuple[str, ...]] = None,
     ):
         self._annotations_dir = Path(annotations_dir)
         if frame_filenames is None:
-            self._frame_filenames = sorted(Path(frames_dir).glob("*.png"))
+            self._frame_filenames: List[Path] = sorted(Path(frames_dir).glob("*.png"))
         else:
             self._frame_filenames = [Path(frames_dir) / filename for filename in frame_filenames]
         self.image_size = image_size

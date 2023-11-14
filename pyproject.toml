@@ -61,4 +61,3 @@ build-backend = "poetry.core.masonry.api"
 [tool.pytest.ini_options]
 addopts = "-v -s"
 filterwarnings = ["ignore::DeprecationWarning"]
-env = ["ENV_STATE=TEST"]
