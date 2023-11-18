@@ -15,7 +15,7 @@ import pytest
 import torch
 
 from animal_classifier.cfg.config import StagingConfig
-from animal_classifier.model import AnimalNet, StateInfo
+from animal_classifier.models.model import AnimalNet, StateInfo
 from animal_classifier.utils.enums import AnimalLabel
 from animal_classifier.utils.image_size import ImageSize
 
@@ -77,10 +77,10 @@ def image_size() -> ImageSize:
 
 
 @pytest.fixture
-def frames(num_frames: int, image_size: ImageSize) -> List[np.ndarray]:
+def frames(num_frames: int, image_size: ImageSize, random_state: np.random.RandomState) -> List[np.ndarray]:
     frames = []
     for _ in range(num_frames):
-        frames.append(np.random.randint(0, 255, size=(image_size.height, image_size.width, 3), dtype=np.uint8))
+        frames.append(random_state.randint(0, 255, size=(image_size.height, image_size.width, 3), dtype=np.uint8))
     return frames
 
 
@@ -95,10 +95,10 @@ def frames_dir(data_dir: Path, frames: List[np.ndarray]) -> str:
 
 
 @pytest.fixture
-def labels(num_frames: int) -> List[AnimalLabel]:
+def labels(num_frames: int, random_state: np.random.RandomState) -> List[AnimalLabel]:
     labels = []
     for _ in range(num_frames):
-        labels.append(np.random.choice(list(AnimalLabel)))
+        labels.append(random_state.choice(list(AnimalLabel)))
     return labels
 
 

@@ -5,7 +5,7 @@ import pytest
 import torch
 from torch.utils.data import DataLoader
 
-from animal_classifier.dataset import AnimalDataset
+from animal_classifier.datasets.dataset import AnimalDataset
 from animal_classifier.utils.enums import AnimalLabel
 
 

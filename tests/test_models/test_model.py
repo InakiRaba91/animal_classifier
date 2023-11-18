@@ -2,7 +2,7 @@ from typing import Dict
 
 import torch
 
-from animal_classifier.model import AnimalNet, StateInfo
+from animal_classifier.models import AnimalNet, StateInfo
 
 
 def compare_state_dicts(state_dict1: Dict, state_dict2: Dict):

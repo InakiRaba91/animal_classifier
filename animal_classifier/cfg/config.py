@@ -46,6 +46,11 @@ class GlobalConfig(BaseSettings):
     TRAIN_FRAC: float = 0.8
     VAL_FRAC: float = 0.1
     TEST_FRAC: float = 0.1
+    BATCH_SIZE: int = 1
+    LEARNING_RATE: float = 0.0003
+    WEIGHT_DECAY: float = 0.0
+    NUM_EPOCHS: int = 3
+    THRESHOLD: float = 0.5
 
     # pydantic config
     model_config = SettingsConfigDict(

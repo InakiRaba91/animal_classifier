@@ -11,9 +11,6 @@ classifiers = [
 ]
 homepage = "https://github.com/InakiRaba91/animal_classifier"
 
-[tool.poetry.scripts]
-animal_classifier="animal_classifier.animal_classifier:main"
-
 [tool.poetry.dependencies]
 numpy = "^1.24"
 pytest = "^6.0.0"
