@@ -13,10 +13,13 @@
       DEVICE: CPU/GPU
 """
 from enum import Enum
+from pathlib import Path
 
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+# get location of current file
+ROOT_PATH = Path(__file__).parent.parent.parent.resolve()
 
 class EnvState(Enum):
     DEV = "DEV"
@@ -38,9 +41,9 @@ class GlobalConfig(BaseSettings):
 
     # Default settings
     # The filepaths will need to be updated when implemented as kubeflow components / pipelines.
-    MODEL_DIR: str = "./models/cats_and_dogs/"
-    ANNOTATIONS_DIR: str = "./data/cats_and_dogs/annotations/"
-    FRAMES_DIR: str = "./data/cats_and_dogs/frames/"
+    MODEL_DIR: str = (ROOT_PATH / "models/cats_and_dogs/").as_posix()
+    ANNOTATIONS_DIR: str = (ROOT_PATH / "data/cats_and_dogs/annotations/").as_posix()
+    FRAMES_DIR: str = (ROOT_PATH / "data/cats_and_dogs/frames/").as_posix()
     USE_CUDA: bool = False
     DEVICE: "str" = "cpu"
     TRAIN_FRAC: float = 0.8

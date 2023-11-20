@@ -75,7 +75,7 @@ def training(
     typer.echo(f"Loss on val dataset: {val_loss}")
 
     # test best
-    model_filepath = f"{model_dir}/{model_filename}"
+    model_filepath = f"{model_dir}/{model_filename}.pth"
     checkpoint = torch.load(model_filepath)
     model.load_state_dict(checkpoint["model_state_dict"])
     model.eval()
@@ -117,7 +117,7 @@ def inference(
     # get image
     image_filepath = Path(frames_dir) / frame_filename
     frame = AnimalDataset._get_frame(image_filepath=image_filepath)
-    X = AnimalDataset.transform_input_frame(frame, image_size=AnimalDataset.DEFAULT_IMAGE_SIZE)
+    X = AnimalDataset.transform_input_frame(frame)
     with torch.no_grad():
         score = model(X.unsqueeze(0).to(cfg.DEVICE)).item()
         animal_label = AnimalLabel.from_score(score=score, threshold=threshold)

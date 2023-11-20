@@ -143,3 +143,9 @@ docs/*
 
 # VScode
 .vscode/
+
+# data, models and logs
+data/
+models/
+logs/
+model-store/

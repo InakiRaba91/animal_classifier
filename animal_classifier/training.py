@@ -94,11 +94,11 @@ def model_training(
         train_loss = running_loss / len(train_loader.sampler)  # type: ignore
 
         state_info = StateInfo(epoch=epoch, optimizer_state_dict=optimizer.state_dict(), loss=train_loss)
-        model.store(model_filename=f"{model_filename}_latest", state_info=state_info, model_dir=model_dir)
+        model.store(model_filename=f"{model_filename}_latest.pth", state_info=state_info, model_dir=model_dir)
 
         val_loss = model_evaluation(model=model, loss_function=loss_function, loader=val_loader)
         if val_loss < best_loss:
             best_loss = val_loss
-            model.store(model_filename=model_filename, state_info=state_info, model_dir=model_dir)
+            model.store(model_filename=f"{model_filename}.pth", state_info=state_info, model_dir=model_dir)
 
     return model_filename, train_loss, best_loss, state_info

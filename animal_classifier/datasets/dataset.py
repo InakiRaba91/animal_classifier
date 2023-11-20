@@ -93,7 +93,7 @@ class AnimalDataset(Dataset):
         return AnimalLabel.from_string(animal=animal).value
 
     @classmethod
-    def transform_input_frame(cls, frame: np.ndarray, image_size: ImageSize = ImageSize(width=16, height=16)) -> torch.Tensor:
+    def transform_input_frame(cls, frame: np.ndarray, image_size: ImageSize = DEFAULT_IMAGE_SIZE) -> torch.Tensor:
         """Resizes image to default size, converts to gray scale, normalizes it, vectorizes it
         and converts it to tensor
 
