@@ -148,4 +148,4 @@ docs/*
 data/
 models/
 logs/
-model-store/
+model_store/

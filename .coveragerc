@@ -6,5 +6,6 @@ omit =
     */venv/*
     tests/*
     */animal_classifier/config-3.8.py
+    */animal_classifier/config-3.py
     */animal_classifier/config.py
-
+    kf/*

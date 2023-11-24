@@ -21,6 +21,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 # get location of current file
 ROOT_PATH = Path(__file__).parent.parent.parent.resolve()
 
+
 class EnvState(Enum):
     DEV = "DEV"
     STAGING = "STAGING"

@@ -1,7 +1,4 @@
-from calendar import c
-import os
 from pathlib import Path
-from py import test
 
 import torch
 import typer
@@ -107,7 +104,6 @@ def inference(
         model_dir: path to folder where model will be stored locally to cache them
         threshold: threshold used for assigning cat/dog label based on confidence score
     """
-    pass
     # load model
     model = AnimalNet()
     model.load(model_filename=model_filename, model_dir=model_dir)

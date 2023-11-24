@@ -7,6 +7,7 @@ authors = ["Inaki Rabanillo"]
 readme = "README.md"
 classifiers = [
     "Programming Language :: Python :: 3",
+    "License ::  MIT",
     "Operating System :: Linux"
 ]
 homepage = "https://github.com/InakiRaba91/animal_classifier"
@@ -39,6 +40,7 @@ pydantic-settings = "^2.0.1"
 torchserve = "^0.9.0"
 torch-model-archiver = "^0.9.0"
 captum = "^0.6.0"
+pyyaml = "^6.0.1"
 
 [tool.poetry.group.dev.dependencies]
 mypy = "^1.4"

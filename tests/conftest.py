@@ -15,7 +15,7 @@ import pytest
 import torch
 
 from animal_classifier.cfg.config import StagingConfig
-from animal_classifier.models.model import AnimalNet, StateInfo
+from animal_classifier.models import AnimalNet, StateInfo
 from animal_classifier.utils.enums import AnimalLabel
 from animal_classifier.utils.image_size import ImageSize
 

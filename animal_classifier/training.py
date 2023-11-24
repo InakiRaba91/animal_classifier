@@ -8,8 +8,7 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader, Dataset
 
 from animal_classifier.cfg import cfg
-from animal_classifier.models import StateInfo
-from animal_classifier.models.model import AnimalNet
+from animal_classifier.models import AnimalNet, StateInfo
 
 np.set_printoptions(linewidth=200, suppress=True)
 
