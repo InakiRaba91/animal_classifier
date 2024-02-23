@@ -41,6 +41,10 @@ torchserve = "^0.9.0"
 torch-model-archiver = "^0.9.0"
 captum = "^0.6.0"
 pyyaml = "^6.0.1"
+fastapi = "^0.109.2"
+uvicorn = "^0.27.1"
+fastapi-health = "^0.4.0"
+python-multipart = "^0.0.9"
 
 [tool.poetry.group.dev.dependencies]
 mypy = "^1.4"
