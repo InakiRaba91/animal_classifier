@@ -65,7 +65,7 @@ RUN pip cache purge && rm -Rf /root/.cache/pip/http
 
 # Copy only requirements to cache them in docker layer. This way docker will only rebuild the dependencies
 # only when poetry.lock or pyproject.toml change
-COPY ./poetry.lock ./pyproject.toml /source/
+COPY ./poetry.lock ./pyproject.toml ./config.properties ./README.md /source/
 
 # Activate env and install deps. Note we use cache for poetry cache and artifacts, so that we avoid
 # downloading same package each time we run docker build
@@ -73,7 +73,7 @@ RUN --mount=type=cache,target=/root/.cache \
     poetry install --without dev
 
 # Copy rest of files
-COPY . /source/
+COPY ./animal_classifier /source/animal_classifier
 
 # We need to run pip install here for installing the current project e.g. ai_template. Note that project folder was
 # copied after running poetry install so it was not properly setup there. We use pip with --no-deps since running

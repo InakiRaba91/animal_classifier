@@ -119,7 +119,7 @@ class TestCLI:
             "--model-dir",
             model_dir,
         ]
-        with patch.object(BCELoss, "forward", side_effect=[torch.tensor(base_loss), torch.tensor(test_loss)]) as mock_loss:
+        with patch.object(BCELoss, "forward", side_effect=[torch.tensor(base_loss), torch.tensor(test_loss)]):
             result = runner.invoke(app, args)
 
         # assert
@@ -154,7 +154,7 @@ class TestCLI:
             "--max-loss-validation",
             0.5,
         ]
-        with patch.object(BCELoss, "forward", return_value=torch.tensor(loss)) as mock_loss:
+        with patch.object(BCELoss, "forward", return_value=torch.tensor(loss)):
             result = runner.invoke(app, args)
 
         # assert
@@ -202,7 +202,7 @@ class TestFullPipelineIntegration:
             model_dir=model_dir,
         )
 
-        with patch.object(BCELoss, "forward", side_effect=[torch.tensor(v) for v in [0.6, 0.4, 0.4]]) as mock_loss:
+        with patch.object(BCELoss, "forward", side_effect=[torch.tensor(v) for v in [0.6, 0.4, 0.4]]):
             is_better_model = evaluation(
                 base_model_filename=f"{base_model_filename}.pth",
                 test_model_filename=f"{test_model_filename}.pth",
