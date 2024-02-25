@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Optional
 
 import torch
 import typer
@@ -15,32 +16,28 @@ app = typer.Typer()
 
 
 @app.command()
-def training(
+def dataset_split(
+    train_filepath: str,
+    val_filepath: str,
+    test_filepath: str,
     frames_dir: str = cfg.FRAMES_DIR,
     annotations_dir: str = cfg.ANNOTATIONS_DIR,
-    model_dir: str = cfg.MODEL_DIR,
-    batch_size: int = cfg.BATCH_SIZE,
     train_frac: float = cfg.TRAIN_FRAC,
     val_frac: float = cfg.VAL_FRAC,
     test_frac: float = cfg.TEST_FRAC,
-    lr: float = cfg.LEARNING_RATE,
-    weight_decay: float = cfg.WEIGHT_DECAY,
-    num_epochs: int = cfg.NUM_EPOCHS,
 ):
     """
-    Pipeline to train cats/dogs classifier
+    Pipeline to split dataset in train/val/test
 
     Args:
+        train_filepath: path of file to store train dataset
+        val_filepath: path of file to store val dataset
+        test_filepath: path of file to store test dataset
         frames_dir: path to the directory containing the frames
         annotations_dir: path to the directory containing the annotations
-        model_dir: path to folder where model will be stored locally to cache them
-        batch_size: batch size in datasets
         train_frac: float indicating the fraction of the split to use for training
         val_frac: float indicating the fraction of the split to use for validation
         test_frac: float indicating the fraction of the split to use for testing
-        lr: learning rate
-        weight_decay: weight decay (L2 penalty)
-        num_epochs: number of epochs to train for
     """
     assert (train_frac + val_frac + test_frac) == 1, "Train/val/test fractions must add up to 1"
     # generate datasets and split them
@@ -51,13 +48,52 @@ def training(
         val_frac=val_frac,
         test_frac=test_frac,
     )
-    # train model
+    for dataset, fpath in zip([train_dataset, val_dataset, test_dataset], [train_filepath, val_filepath, test_filepath]):
+        dataset.to_snapshot(fpath=fpath)
+        typer.echo(f"Dataset stored to {fpath}")
+
+
+@app.command()
+def training(
+    train_filepath: str,
+    val_filepath: str,
+    model_filename: Optional[str] = None,
+    annotations_dir: str = cfg.ANNOTATIONS_DIR,
+    model_dir: str = cfg.MODEL_DIR,
+    batch_size: int = cfg.BATCH_SIZE,
+    lr: float = cfg.LEARNING_RATE,
+    weight_decay: float = cfg.WEIGHT_DECAY,
+    num_epochs: int = cfg.NUM_EPOCHS,
+):
+    """
+    Pipeline to train cats/dogs classifier
+
+    Args:
+        train_filepath: path of file to store train dataset
+        val_filepath: path of file to store val dataset
+        model_filename: name of stored model to use for inference
+        frames_dir: path to the directory containing the frames
+        annotations_dir: path to the directory containing the annotations
+        model_dir: path to folder where model will be stored locally to cache them
+        batch_size: batch size in datasets
+        lr: learning rate
+        weight_decay: weight decay (L2 penalty)
+        num_epochs: number of epochs to train for
+
+    Returns:
+        model_filename: name of stored model to use for inference
+    """
+    train_dataset = AnimalDataset.from_snapshot(fpath=train_filepath, annotations_dir=annotations_dir)
+    val_dataset = AnimalDataset.from_snapshot(fpath=val_filepath, annotations_dir=annotations_dir)
+
     model = AnimalNet()
     loss_function = AnimalLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
+
     model_filename, train_loss, val_loss, _ = model_training(
         train_dataset=train_dataset,
         val_dataset=val_dataset,
+        model_filename=model_filename,
         model=model,
         loss_function=loss_function,
         optimizer=optimizer,
@@ -65,21 +101,96 @@ def training(
         batch_size=batch_size,
         model_dir=model_dir,
     )
-    # this could be sent to prometheus or tensorboard for logging purposes
+
     typer.echo(f"Model {model_filename} trained for {num_epochs} epochs")
     typer.echo("----------------------------------------------------------")
     typer.echo(f"Loss on train dataset: {train_loss}")
     typer.echo(f"Loss on val dataset: {val_loss}")
+    return model_filename
 
-    # test best
-    model_filepath = f"{model_dir}/{model_filename}.pth"
-    checkpoint = torch.load(model_filepath)
-    model.load_state_dict(checkpoint["model_state_dict"])
-    model.eval()
-    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True)
-    test_loss = model_evaluation(model=model, loss_function=loss_function, loader=test_loader)
-    typer.echo(f"Loss on test dataset: {test_loss}")
-    typer.echo("----------------------------------------------------------")
+
+@app.command()
+def evaluation(
+    base_model_filename: str,
+    test_model_filename: str,
+    dataset_filepath: str,
+    annotations_dir: str = cfg.ANNOTATIONS_DIR,
+    model_dir: str = cfg.MODEL_DIR,
+    batch_size: int = cfg.BATCH_SIZE,
+) -> bool:
+    """
+    Pipeline to compare two cats/dogs classifier
+
+    Args:
+        base_model_filename: name of stored base model use as reference for comparison
+        dataset_filename: filename of stored dataset to use for evaluation
+        dataset_filepath: path of file storing test dataset
+        frames_dir: path to the directory containing the frames
+        annotations_dir: path to the directory containing the annotations
+        model_dir: path to folder where model will be stored locally to cache them
+
+    Returns:
+        bool: True if test model is better than base model, False otherwise
+    """
+    base_model = AnimalNet()
+    base_model.load(model_filename=base_model_filename, model_dir=model_dir)
+    base_model.eval()
+    test_model = AnimalNet()
+    test_model.load(model_filename=test_model_filename, model_dir=model_dir)
+    test_model.eval()
+
+    loss_function = AnimalLoss()
+    dataset = AnimalDataset.from_snapshot(fpath=dataset_filepath, annotations_dir=annotations_dir)
+    loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+    base_model_loss = model_evaluation(model=base_model, loss_function=loss_function, loader=loader)
+    test_model_loss = model_evaluation(model=test_model, loss_function=loss_function, loader=loader)
+
+    if test_model_loss <= base_model_loss:
+        typer.echo(f"Test model is better than base model: {base_model_loss=} -> {test_model_loss=}")
+        return True
+    else:
+        typer.echo(f"Test model is worse than base model: {base_model_loss=} -> {test_model_loss=}")
+        return False
+
+
+@app.command()
+def validation(
+    model_filename: str,
+    dataset_filepath: str,
+    annotations_dir: str = cfg.ANNOTATIONS_DIR,
+    model_dir: str = cfg.MODEL_DIR,
+    batch_size: int = cfg.BATCH_SIZE,
+    max_loss_validation: float = cfg.MAX_LOSS_VALIDATION,
+) -> bool:
+    """
+    Pipeline to validate two cats/dogs classifier
+
+    Args:
+        model_filename: name of stored model to validate
+        dataset_filepath: path of stored dataset to use for validation
+        frames_dir: path to the directory containing the frames
+        annotations_dir: path to the directory containing the annotations
+        model_dir: path to folder where model will be stored locally to cache them
+        max_loss_validation: maximum loss allowed for model to be deployed
+
+    Returns:
+        bool: True if test model is better than base model, False otherwise
+    """
+    base_model = AnimalNet()
+    base_model.load(model_filename=model_filename, model_dir=model_dir)
+    base_model.eval()
+
+    loss_function = AnimalLoss()
+    dataset = AnimalDataset.from_snapshot(fpath=dataset_filepath, annotations_dir=annotations_dir)
+    loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+    model_loss = model_evaluation(model=base_model, loss_function=loss_function, loader=loader)
+
+    if model_loss < max_loss_validation:
+        typer.echo(f"Model is ready for deployment: {model_loss=} > {max_loss_validation=}")
+        return True
+    else:
+        typer.echo(f"Model is not ready for deployment: {model_loss=} <= {max_loss_validation=}")
+        return False
 
 
 @app.command()

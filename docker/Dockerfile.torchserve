@@ -1,0 +1,86 @@
+FROM ubuntu:22.04 as base
+
+ARG DEBIAN_FRONTEND=noninteractive
+
+# env variables
+ENV PYTHONUNBUFFERED=1 \
+    # prevents python creating .pyc files
+    PYTHONDONTWRITEBYTECODE=1 \
+    # pip
+    PIP_DISABLE_PIP_VERSION_CHECK=on \
+    PIP_DEFAULT_TIMEOUT=100 \
+    # poetry configuration (https://python-poetry.org/docs/configuration/#using-environment-variables)
+    # make poetry install to this location
+    POETRY_HOME="/opt/poetry" \
+    POETRY_VERSION="1.6.1" \
+    # make poetry create the virtual environment in the project's root
+    # it gets named `.venv`
+    POETRY_VIRTUALENVS_IN_PROJECT=true \
+    # do not ask any interactive question
+    POETRY_NO_INTERACTION=1 \
+    VENV_PATH="/source/.venv"
+
+# prepend poetry and venv to path
+ENV PATH="$POETRY_HOME/bin:$VENV_PATH/bin:$PATH"
+
+# Install system tools and libraries.
+# The --mount flag caches downloaded packages so they are not downloaded again when new packages are added
+RUN --mount=type=cache,id=apt-build,target=/var/cache/apt \
+    # Need to install python 3.11 from deadsnakes repo
+    apt-get update && apt-get install -y software-properties-common -y && add-apt-repository ppa:deadsnakes/ppa && \
+    apt-get update && apt-get install -y --no-install-recommends \
+        curl \
+        build-essential \
+        python3.11 \
+        python3-pip \
+        python3.11-venv \
+        python3.11-dev \
+        # opencv dependencies
+        ffmpeg \
+        libsm6 \
+        libxext6
+
+# Install Java 11
+RUN apt-get update && apt install -y --no-install-recommends software-properties-common && \
+    add-apt-repository ppa:openjdk-r/ppa && \
+    apt install -y --no-install-recommends openjdk-11-jre-headless && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1 && \
+    update-alternatives --set python3 /usr/bin/python3.11
+
+
+# Install poetry
+RUN curl -sSL https://install.python-poetry.org | python3 - --version $POETRY_VERSION
+
+WORKDIR /source
+
+# Create a venv where deps will be installed, it will be used by poetry
+RUN python3 -m venv $VENV_PATH
+ENV PATH="$VENV_PATH/bin:$PATH"
+RUN pip install pip==21.3.1
+
+# Remove cached from final images
+RUN pip cache purge && rm -Rf /root/.cache/pip/http
+
+# Copy only requirements to cache them in docker layer. This way docker will only rebuild the dependencies
+# only when poetry.lock or pyproject.toml change
+COPY ./poetry.lock ./pyproject.toml /source/
+
+# Activate env and install deps. Note we use cache for poetry cache and artifacts, so that we avoid
+# downloading same package each time we run docker build
+RUN --mount=type=cache,target=/root/.cache \
+    poetry install --without dev
+
+# Copy rest of files
+COPY . /source/
+
+# We need to run pip install here for installing the current project e.g. ai_template. Note that project folder was
+# copied after running poetry install so it was not properly setup there. We use pip with --no-deps since running
+# poetry install again would override any specific dependencies installed with poe (this is how we are handling gpu deps at the moment)
+RUN poetry run pip install . --no-deps
+
+# Expose inference, management and metrics ports
+EXPOSE 8080 8081 8082
+
+ENTRYPOINT ["torchserve", "--start", "--foreground", "--ts-config", "./config.properties", "--models", "all"]
