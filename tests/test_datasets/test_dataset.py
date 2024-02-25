@@ -1,6 +1,8 @@
+from pathlib import Path
 from typing import List
 
 import numpy as np
+import pandas as pd
 import pytest
 import torch
 from torch.utils.data import DataLoader
@@ -52,3 +54,44 @@ class TestAnimalDataset:
         assert len(train._frame_filenames) == num_frames * train_frac
         assert len(val._frame_filenames) == num_frames * val_frac
         assert len(test._frame_filenames) == num_frames * test_frac
+
+    def test_to_snapshot(self, frames_dir: str, annotations_dir: str, data_dir: Path):
+        # setup
+        fpath = data_dir / "snapshot.csv"
+        dataset = AnimalDataset(frames_dir=frames_dir, annotations_dir=annotations_dir)
+
+        # execute
+        _ = dataset.to_snapshot(fpath=fpath)
+
+        # assert
+        # check csv exists
+        assert fpath.exists()
+        df = pd.read_csv(fpath)
+        assert len(df) == len(dataset)
+
+    def test_from_csv(self, frames_dir: str, annotations_dir: str, data_dir: Path):
+        # setup
+        fpath = data_dir / "snapshot.csv"
+        df = pd.DataFrame({"frame_filename": [fp.as_posix() for fp in Path(frames_dir).glob("*.png")]})
+        df.to_csv(fpath, index=False)
+        dataset = AnimalDataset(frames_dir=frames_dir, annotations_dir=annotations_dir)
+
+        # execute
+        dataset_from_csv = AnimalDataset.from_snapshot(fpath=fpath)
+
+        # assert
+        assert len(dataset_from_csv) == len(dataset)
+
+    def test_snapshot_conversion_revertible(self, frames_dir: str, annotations_dir: str, data_dir: Path):
+        # setup
+        fpath = data_dir / "snapshot.csv"
+        dataset = AnimalDataset(frames_dir=frames_dir, annotations_dir=annotations_dir)
+
+        # execute
+        dataset.to_snapshot(fpath=fpath)
+        dataset_from_csv = AnimalDataset.from_snapshot(fpath=fpath)
+
+        # assert
+        assert len(dataset_from_csv) == len(dataset)
+        for frame_filename, frame_filename_from_csv in zip(dataset._frame_filenames, dataset_from_csv._frame_filenames):
+            assert frame_filename == frame_filename_from_csv

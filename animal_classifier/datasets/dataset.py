@@ -4,6 +4,7 @@ from typing import List, Optional, Tuple
 
 import cv2
 import numpy as np
+import pandas as pd
 import torch
 from numpy import ndarray
 from sklearn.model_selection import train_test_split
@@ -167,3 +168,24 @@ class AnimalDataset(Dataset):
             frame_filenames=test_filenames,
         )
         return train, val, test
+
+    def to_snapshot(self, fpath: str):
+        """Saves the dataset to a csv file
+
+        Args:
+            fpath: fpath to the csv file
+        """
+        df = pd.DataFrame(self._frame_filenames, columns=["frame_filename"])
+        df.to_csv(fpath, index=False)
+
+    @classmethod
+    def from_snapshot(cls, fpath: str, annotations_dir: str = cfg.ANNOTATIONS_DIR, image_size: ImageSize = DEFAULT_IMAGE_SIZE):
+        """Loads the dataset from a csv file
+
+        Args:
+            fpath: fpath to the csv file
+        """
+        # load list of frame filenames from a csv
+        df = pd.read_csv(fpath)
+        frame_filenames = df["frame_filename"].apply(Path)
+        return cls(annotations_dir=annotations_dir, image_size=image_size, frame_filenames=frame_filenames)

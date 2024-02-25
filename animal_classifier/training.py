@@ -1,5 +1,5 @@
 import time
-from typing import Tuple
+from typing import Optional, Tuple
 
 import numpy as np
 import torch
@@ -43,6 +43,7 @@ def model_training(
     model: AnimalNet,
     loss_function: Module,
     optimizer: Optimizer,
+    model_filename: Optional[str] = None,
     batch_size: int = 1,
     num_epochs: int = 100,
     model_dir: str = cfg.MODEL_DIR,
@@ -56,6 +57,7 @@ def model_training(
         model: AnimalNet mapping image -> label
         loss_function: loss function
         optimizer: optimizer used to determine optimal values for model weights
+        model_filename: name of stored model to use for inference
         batch_size: batch size in datasets
         num_epochs: number of epochs to train for
         model_dir: path to folder where model will be stored locally to cache them
@@ -75,7 +77,8 @@ def model_training(
 
     # loop through epochs to optimize the loss function
     best_loss = np.inf
-    model_filename = f"{model.__class__.__name__}_{time.strftime('%Y%m%d-%H%M%S')}"
+    if model_filename is None:
+        model_filename = f"{model.__class__.__name__}_{time.strftime('%Y%m%d-%H%M%S')}"
     for epoch in range(num_epochs):
         running_loss = 0.0
 

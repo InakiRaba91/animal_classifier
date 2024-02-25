@@ -4,7 +4,7 @@ from unittest.mock import Mock
 import pytest
 import torch
 
-from animal_classifier.api.handler import AnimalHandler
+from animal_classifier.api.torchserve.handler import AnimalHandler
 from animal_classifier.models import AnimalNet, StateInfo
 
 
