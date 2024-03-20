@@ -5,7 +5,6 @@ from unittest.mock import patch
 import pandas as pd
 import pytest
 import torch
-from torch.nn import BCELoss
 from typer.testing import CliRunner
 
 from animal_classifier.__main__ import (
@@ -91,7 +90,7 @@ class TestCLI:
         _, _, files = next(os.walk(os.path.join(pytest.test_data_root_location, model_dir)))  # type: ignore
         assert len(files) == 2  # latest and best
 
-    @pytest.mark.parametrize("base_loss, test_loss, verdict", [(0.5, 0.4, "better"), (0.5, 0.6, "worse")])
+    @pytest.mark.parametrize("base_accuracy, test_accuracy, verdict", [(0.5, 1.0, "better"), (1.0, 0.5, "worse")])
     def test_app_evaluation(
         self,
         model_fpath: Path,
@@ -99,8 +98,8 @@ class TestCLI:
         frames_dir: str,
         annotations_dir: str,
         model_dir: str,
-        base_loss: float,
-        test_loss: float,
+        base_accuracy: float,
+        test_accuracy: float,
         verdict: str,
     ):
         # setup
@@ -119,14 +118,14 @@ class TestCLI:
             "--model-dir",
             model_dir,
         ]
-        with patch.object(BCELoss, "forward", side_effect=[torch.tensor(base_loss), torch.tensor(test_loss)]):
+        with patch("animal_classifier.training._matching_predictions", side_effect=[base_accuracy, test_accuracy]):
             result = runner.invoke(app, args)
 
         # assert
         assert result.exit_code == 0
         assert f"Test model is {verdict} than base model" in result.stdout
 
-    @pytest.mark.parametrize("loss, verdict", [(0.4, "ready"), (0.6, "not ready")])
+    @pytest.mark.parametrize("accuracy, verdict", [(0.6, "ready"), (0.4, "not ready")])
     def test_app_validation(
         self,
         model_fpath: Path,
@@ -134,7 +133,7 @@ class TestCLI:
         frames_dir: str,
         annotations_dir: str,
         model_dir: str,
-        loss: float,
+        accuracy: float,
         verdict: str,
     ):
         # setup
@@ -151,10 +150,10 @@ class TestCLI:
             annotations_dir,
             "--model-dir",
             model_dir,
-            "--max-loss-validation",
+            "--min-accuracy-validation",
             0.5,
         ]
-        with patch.object(BCELoss, "forward", return_value=torch.tensor(loss)):
+        with patch("animal_classifier.training._matching_predictions", return_value=accuracy):
             result = runner.invoke(app, args)
 
         # assert
@@ -202,7 +201,7 @@ class TestFullPipelineIntegration:
             model_dir=model_dir,
         )
 
-        with patch.object(BCELoss, "forward", side_effect=[torch.tensor(v) for v in [0.6, 0.4, 0.4]]):
+        with patch("animal_classifier.training._matching_predictions", side_effect=[torch.tensor(v) for v in [0.4, 0.6, 0.6]]):
             is_better_model = evaluation(
                 base_model_filename=f"{base_model_filename}.pth",
                 test_model_filename=f"{test_model_filename}.pth",
@@ -215,7 +214,7 @@ class TestFullPipelineIntegration:
                 dataset_filepath=test_fpath,
                 annotations_dir=annotations_dir,
                 model_dir=model_dir,
-                max_loss_validation=0.5,
+                min_accuracy_validation=0.5,
             )
 
         # assert

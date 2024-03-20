@@ -90,7 +90,7 @@ def training(
     loss_function = AnimalLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
 
-    model_filename, train_loss, val_loss, _ = model_training(
+    model_filename, train_loss, val_accuracy, _ = model_training(
         train_dataset=train_dataset,
         val_dataset=val_dataset,
         model_filename=model_filename,
@@ -105,7 +105,7 @@ def training(
     typer.echo(f"Model {model_filename} trained for {num_epochs} epochs")
     typer.echo("----------------------------------------------------------")
     typer.echo(f"Loss on train dataset: {train_loss}")
-    typer.echo(f"Loss on val dataset: {val_loss}")
+    typer.echo(f"Accuracy on val dataset: {val_accuracy}")
     return model_filename
 
 
@@ -139,17 +139,16 @@ def evaluation(
     test_model.load(model_filename=test_model_filename, model_dir=model_dir)
     test_model.eval()
 
-    loss_function = AnimalLoss()
     dataset = AnimalDataset.from_snapshot(fpath=dataset_filepath, annotations_dir=annotations_dir)
     loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
-    base_model_loss = model_evaluation(model=base_model, loss_function=loss_function, loader=loader)
-    test_model_loss = model_evaluation(model=test_model, loss_function=loss_function, loader=loader)
+    base_model_accuracy = model_evaluation(model=base_model, loader=loader)
+    test_model_accuracy = model_evaluation(model=test_model, loader=loader)
 
-    if test_model_loss <= base_model_loss:
-        typer.echo(f"Test model is better than base model: {base_model_loss=} -> {test_model_loss=}")
+    if test_model_accuracy >= base_model_accuracy:
+        typer.echo(f"Test model is better than base model: {base_model_accuracy=} -> {test_model_accuracy=}")
         return True
     else:
-        typer.echo(f"Test model is worse than base model: {base_model_loss=} -> {test_model_loss=}")
+        typer.echo(f"Test model is worse than base model: {base_model_accuracy=} -> {test_model_accuracy=}")
         return False
 
 
@@ -160,7 +159,7 @@ def validation(
     annotations_dir: str = cfg.ANNOTATIONS_DIR,
     model_dir: str = cfg.MODEL_DIR,
     batch_size: int = cfg.BATCH_SIZE,
-    max_loss_validation: float = cfg.MAX_LOSS_VALIDATION,
+    min_accuracy_validation: float = cfg.MIN_ACCURACY_VALIDATION,
 ) -> bool:
     """
     Pipeline to validate two cats/dogs classifier
@@ -171,7 +170,7 @@ def validation(
         frames_dir: path to the directory containing the frames
         annotations_dir: path to the directory containing the annotations
         model_dir: path to folder where model will be stored locally to cache them
-        max_loss_validation: maximum loss allowed for model to be deployed
+        min_accuracy_validation: minimum accuracy required for model to be deployed
 
     Returns:
         bool: True if test model is better than base model, False otherwise
@@ -180,16 +179,15 @@ def validation(
     base_model.load(model_filename=model_filename, model_dir=model_dir)
     base_model.eval()
 
-    loss_function = AnimalLoss()
     dataset = AnimalDataset.from_snapshot(fpath=dataset_filepath, annotations_dir=annotations_dir)
     loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
-    model_loss = model_evaluation(model=base_model, loss_function=loss_function, loader=loader)
+    model_accuracy = model_evaluation(model=base_model, loader=loader)
 
-    if model_loss < max_loss_validation:
-        typer.echo(f"Model is ready for deployment: {model_loss=} > {max_loss_validation=}")
+    if model_accuracy > min_accuracy_validation:
+        typer.echo(f"Model is ready for deployment: {model_accuracy=} > {min_accuracy_validation=}")
         return True
     else:
-        typer.echo(f"Model is not ready for deployment: {model_loss=} <= {max_loss_validation=}")
+        typer.echo(f"Model is not ready for deployment: {model_accuracy=} <= {min_accuracy_validation=}")
         return False
 
 

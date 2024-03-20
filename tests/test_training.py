@@ -21,12 +21,11 @@ def test_model_evaluation(
     tol: float = 1e-6,
 ):
     model = AnimalNet()
-    loss_function = AnimalLoss()
     dataset = AnimalDataset(frames_dir=frames_dir, annotations_dir=annotations_dir)
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle)
-    loss = model_evaluation(model=model, loss_function=loss_function, loader=dataloader)
-    expected_loss = 0.601394
-    assert abs(loss - expected_loss) < tol
+    accuracy = model_evaluation(model=model, loader=dataloader)
+    expected_accuracy = 0.8
+    assert abs(accuracy - expected_accuracy) < tol
 
 
 # mock train_test_split to avoid randomnes
@@ -34,9 +33,7 @@ def test_model_evaluation(
     "animal_classifier.datasets.dataset.train_test_split",
     wraps=lambda x, train_size: (x[: int(len(x) * train_size)], x[int(len(x) * train_size) :]),
 )
-@pytest.mark.parametrize(
-    "batch_size, expected_train_loss, expected_best_loss", [(1, 0.374296, 0.567499), (2, 0.381158, 0.567586)]
-)
+@pytest.mark.parametrize("batch_size, expected_train_loss", [(1, 0.374296), (2, 0.381158)])
 def test_model_training(
     mocked_train_test_split,
     frames_dir: str,
@@ -44,7 +41,6 @@ def test_model_training(
     model_dir: str,
     batch_size: int,
     expected_train_loss: float,
-    expected_best_loss: float,
     tol: float = 1e-6,
 ):
     train_frac, val_frac, test_frac = 0.6, 0.2, 0.2
@@ -55,10 +51,11 @@ def test_model_training(
         val_frac=val_frac,
         test_frac=test_frac,
     )
+    expected_best_accuracy = 1.0
     model = AnimalNet()
     loss_function = AnimalLoss()
     optimizer = torch.optim.Adam(model.parameters())
-    _, train_loss, best_loss, _ = model_training(
+    _, train_loss, best_accuracy, _ = model_training(
         train_dataset=train_dataset,
         val_dataset=val_dataset,
         model=model,
@@ -69,6 +66,6 @@ def test_model_training(
         model_dir=model_dir,
     )
     assert abs(train_loss - expected_train_loss) < tol
-    assert abs(best_loss - expected_best_loss) < tol
+    assert abs(best_accuracy - expected_best_accuracy) < tol, best_accuracy
     _, _, files = next(os.walk(os.path.join(pytest.test_data_root_location, model_dir)))  # type: ignore
     assert len(files) == 2  # latest and best

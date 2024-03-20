@@ -51,7 +51,7 @@ class GlobalConfig(BaseSettings):
     VAL_FRAC: float = 0.1
     TEST_FRAC: float = 0.1
     BATCH_SIZE: int = 1
-    MAX_LOSS_VALIDATION: float = 0.0
+    MIN_ACCURACY_VALIDATION: float = 0.0
     LEARNING_RATE: float = 0.0003
     WEIGHT_DECAY: float = 0.0
     NUM_EPOCHS: int = 3
