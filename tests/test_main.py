@@ -54,6 +54,57 @@ class TestCLI:
         assert len(df_val) == num_frames * val_frac
         assert len(df_test) == num_frames * test_frac
 
+    def test_app_dataset_split_with_prev_splits(self, data_dir: Path, frames_dir: str, annotations_dir: str, num_frames: int):
+        # setup
+        train_fpath = data_dir / "train.csv"
+        val_fpath = data_dir / "val.csv"
+        test_fpath = data_dir / "test.csv"
+        train_frac, val_frac, test_frac = 0.6, 0.2, 0.2
+        snapshot_filepaths = [train_fpath, val_fpath, test_fpath]
+        prev_frame_filenames = [f"{frames_dir}/{i}.png" for i in range(num_frames, 2*num_frames)]
+        prev_train_filenames = prev_frame_filenames[:int(num_frames * train_frac)]
+        prev_val_filenames = prev_frame_filenames[int(num_frames * train_frac) : int(num_frames * (train_frac + val_frac))]
+        prev_test_filenames = prev_frame_filenames[int(num_frames * (train_frac + val_frac)):]
+        set_filenames = [prev_train_filenames, prev_val_filenames, prev_test_filenames]
+        for filenames, fpath in zip(set_filenames, snapshot_filepaths):
+            pd.DataFrame(filenames, columns=["frame_filename"]).to_csv(fpath, index=False)
+        args = [
+            "dataset-split",
+            str(train_fpath),
+            str(val_fpath),
+            str(test_fpath),
+            "--frames-dir",
+            frames_dir,
+            "--annotations-dir",
+            annotations_dir,
+            "--train-frac",
+            train_frac,
+            "--val-frac",
+            val_frac,
+            "--test-frac",
+            test_frac,
+        ]
+        result = runner.invoke(app, args)
+        assert result.exit_code == 0
+
+        # assert datasets were stored
+        assert train_fpath.exists()
+        assert val_fpath.exists()
+        assert test_fpath.exists()
+        df_train = pd.read_csv(train_fpath)
+        df_val = pd.read_csv(val_fpath)
+        df_test = pd.read_csv(test_fpath)
+        assert len(df_train) + len(df_val) + len(df_test) == 2 * num_frames
+        # val sets are the same
+        assert len(df_val) == len(prev_val_filenames)
+        # test sets are completely different but with equal length
+        assert len(df_test) == len(prev_test_filenames)
+        assert len(set(df_test.frame_filename) & set(prev_test_filenames)) == 0
+        # train sets include old train/test files but not new test/val files
+        assert len(set(df_train.frame_filename) & set(df_test.frame_filename)) == 0
+        assert len(set(df_train.frame_filename) & set(df_val.frame_filename)) == 0
+        assert all(f in df_train.frame_filename.values for f in prev_train_filenames + prev_test_filenames)
+
     @pytest.mark.parametrize("model_filename", [None, "base_model"])
     def test_app_training(
         self, num_frames: int, data_dir: Path, frames_dir: str, annotations_dir: str, model_dir: str, model_filename: str
