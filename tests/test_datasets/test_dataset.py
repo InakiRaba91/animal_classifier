@@ -1,4 +1,4 @@
-from pathlib import Path
+from pathlib import Path, PosixPath
 from typing import List
 
 import numpy as np
@@ -54,6 +54,42 @@ class TestAnimalDataset:
         assert len(train._frame_filenames) == num_frames * train_frac
         assert len(val._frame_filenames) == num_frames * val_frac
         assert len(test._frame_filenames) == num_frames * test_frac
+        
+    def test_extend_datasets(self, frames_dir: str, annotations_dir: str, num_frames: int, data_dir: Path):
+        # setup
+        train_filepath = data_dir / "train.csv"
+        val_filepath = data_dir / "val.csv"
+        test_filepath = data_dir / "test.csv"
+        snapshot_filepaths = [train_filepath, val_filepath, test_filepath]
+        train_frac, val_frac = 0.6, 0.2
+        prev_frame_filenames = [f"{frames_dir}/{i}.png" for i in range(num_frames, 2*num_frames)]
+        prev_train_filenames = prev_frame_filenames[:int(num_frames * train_frac)]
+        prev_val_filenames = prev_frame_filenames[int(num_frames * train_frac) : int(num_frames * (train_frac + val_frac))]
+        prev_test_filenames = prev_frame_filenames[int(num_frames * (train_frac + val_frac)):]
+        set_filenames = [prev_train_filenames, prev_val_filenames, prev_test_filenames]
+        for filenames, fpath in zip(set_filenames, snapshot_filepaths):
+            pd.DataFrame(filenames, columns=["frame_filename"]).to_csv(fpath, index=False)
+
+        # execute
+        train, val, test = AnimalDataset.extend_splits(
+            frames_dir=frames_dir,
+            annotations_dir=annotations_dir,
+            train_fpath=train_filepath,
+            val_fpath=val_filepath,
+            test_fpath=test_filepath,
+        )
+
+        # assert
+        assert len(train) + len(val) + len(test) == 2 * num_frames
+        # val sets are the same
+        assert len(val) == len(prev_val_filenames)
+        # test sets are completely different but with equal length
+        assert len(test) == len(prev_test_filenames)
+        assert len(set(test._frame_filenames) & set(prev_test_filenames)) == 0
+        # train sets include old train/test files but not new test/val files
+        assert len(set(train._frame_filenames) & set(test._frame_filenames)) == 0
+        assert len(set(train._frame_filenames) & set(val._frame_filenames)) == 0
+        assert all(Path(f) in train._frame_filenames for f in prev_train_filenames + prev_test_filenames)
 
     def test_to_snapshot(self, frames_dir: str, annotations_dir: str, data_dir: Path):
         # setup

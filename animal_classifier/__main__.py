@@ -39,15 +39,26 @@ def dataset_split(
         val_frac: float indicating the fraction of the split to use for validation
         test_frac: float indicating the fraction of the split to use for testing
     """
-    assert (train_frac + val_frac + test_frac) == 1, "Train/val/test fractions must add up to 1"
-    # generate datasets and split them
-    train_dataset, val_dataset, test_dataset = AnimalDataset.get_splits(
-        frames_dir=frames_dir,
-        annotations_dir=annotations_dir,
-        train_frac=train_frac,
-        val_frac=val_frac,
-        test_frac=test_frac,
-    )
+    # if snapshots exist, extend them
+    if Path(train_filepath).exists() and Path(val_filepath).exists() and Path(test_filepath).exists():
+        train_dataset, val_dataset, test_dataset = AnimalDataset.extend_splits(
+            train_fpath=train_filepath,
+            val_fpath=val_filepath,
+            test_fpath=test_filepath,
+            frames_dir=frames_dir,
+            annotations_dir=annotations_dir,
+        )
+    # otherwise, create them
+    else:
+        assert (train_frac + val_frac + test_frac) == 1, "Train/val/test fractions must add up to 1"
+        # generate datasets and split them
+        train_dataset, val_dataset, test_dataset = AnimalDataset.get_splits(
+            frames_dir=frames_dir,
+            annotations_dir=annotations_dir,
+            train_frac=train_frac,
+            val_frac=val_frac,
+            test_frac=test_frac,
+        )
     for dataset, fpath in zip([train_dataset, val_dataset, test_dataset], [train_filepath, val_filepath, test_filepath]):
         dataset.to_snapshot(fpath=fpath)
         typer.echo(f"Dataset stored to {fpath}")
@@ -229,6 +240,10 @@ def inference(
         typer.echo(f"Image displays a {animal_label.name.lower()}")
         return animal_label
 
+
+@app.command()
+def prueba():
+    typer.echo(f"Test model is better than base model")
 
 if __name__ == "__main__":
     app()
