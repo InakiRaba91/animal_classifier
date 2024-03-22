@@ -241,9 +241,5 @@ def inference(
         return animal_label
 
 
-@app.command()
-def prueba():
-    typer.echo(f"Test model is better than base model")
-
 if __name__ == "__main__":
     app()

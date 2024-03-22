@@ -1,4 +1,4 @@
-from pathlib import Path, PosixPath
+from pathlib import Path
 from typing import List
 
 import numpy as np
@@ -54,7 +54,7 @@ class TestAnimalDataset:
         assert len(train._frame_filenames) == num_frames * train_frac
         assert len(val._frame_filenames) == num_frames * val_frac
         assert len(test._frame_filenames) == num_frames * test_frac
-        
+
     def test_extend_datasets(self, frames_dir: str, annotations_dir: str, num_frames: int, data_dir: Path):
         # setup
         train_filepath = data_dir / "train.csv"
@@ -62,10 +62,10 @@ class TestAnimalDataset:
         test_filepath = data_dir / "test.csv"
         snapshot_filepaths = [train_filepath, val_filepath, test_filepath]
         train_frac, val_frac = 0.6, 0.2
-        prev_frame_filenames = [f"{frames_dir}/{i}.png" for i in range(num_frames, 2*num_frames)]
-        prev_train_filenames = prev_frame_filenames[:int(num_frames * train_frac)]
+        prev_frame_filenames = [f"{frames_dir}/{i}.png" for i in range(num_frames, 2 * num_frames)]
+        prev_train_filenames = prev_frame_filenames[: int(num_frames * train_frac)]
         prev_val_filenames = prev_frame_filenames[int(num_frames * train_frac) : int(num_frames * (train_frac + val_frac))]
-        prev_test_filenames = prev_frame_filenames[int(num_frames * (train_frac + val_frac)):]
+        prev_test_filenames = prev_frame_filenames[int(num_frames * (train_frac + val_frac)) :]
         set_filenames = [prev_train_filenames, prev_val_filenames, prev_test_filenames]
         for filenames, fpath in zip(set_filenames, snapshot_filepaths):
             pd.DataFrame(filenames, columns=["frame_filename"]).to_csv(fpath, index=False)

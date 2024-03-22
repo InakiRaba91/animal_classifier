@@ -61,10 +61,10 @@ class TestCLI:
         test_fpath = data_dir / "test.csv"
         train_frac, val_frac, test_frac = 0.6, 0.2, 0.2
         snapshot_filepaths = [train_fpath, val_fpath, test_fpath]
-        prev_frame_filenames = [f"{frames_dir}/{i}.png" for i in range(num_frames, 2*num_frames)]
-        prev_train_filenames = prev_frame_filenames[:int(num_frames * train_frac)]
+        prev_frame_filenames = [f"{frames_dir}/{i}.png" for i in range(num_frames, 2 * num_frames)]
+        prev_train_filenames = prev_frame_filenames[: int(num_frames * train_frac)]
         prev_val_filenames = prev_frame_filenames[int(num_frames * train_frac) : int(num_frames * (train_frac + val_frac))]
-        prev_test_filenames = prev_frame_filenames[int(num_frames * (train_frac + val_frac)):]
+        prev_test_filenames = prev_frame_filenames[int(num_frames * (train_frac + val_frac)) :]
         set_filenames = [prev_train_filenames, prev_val_filenames, prev_test_filenames]
         for filenames, fpath in zip(set_filenames, snapshot_filepaths):
             pd.DataFrame(filenames, columns=["frame_filename"]).to_csv(fpath, index=False)

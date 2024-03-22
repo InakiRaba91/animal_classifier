@@ -1,4 +1,3 @@
-from hmac import new
 import json
 from pathlib import Path
 from typing import List, Optional, Tuple
@@ -179,13 +178,12 @@ class AnimalDataset(Dataset):
         frames_dir: str = cfg.FRAMES_DIR,
         annotations_dir: str = cfg.ANNOTATIONS_DIR,
         image_size: ImageSize = DEFAULT_IMAGE_SIZE,
-        
     ) -> Tuple["AnimalDataset", "AnimalDataset", "AnimalDataset"]:
         """
         Wrap data into 3 different instances of CatsDogsDataset corresponding to the train/val/test splits
 
         The current splits come from a set of items given by Tr + Vl + Ts. After the split, the dataset is extended
-        to incorporate more items Ex, so it's not comprised of Tr + Vl + Ts + Ex. 
+        to incorporate more items Ex, so it's not comprised of Tr + Vl + Ts + Ex.
 
         It extends the existing splits by using the following strategy:
         1. Vl'=Vl (for a fair comparison)
@@ -204,32 +202,38 @@ class AnimalDataset(Dataset):
             train/val/test CatsDogsDatasets
         """
         frame_filenames = list(Path(frames_dir).glob("*.png"))
-        prev_train_filenames = cls.from_snapshot(fpath=train_fpath, annotations_dir=annotations_dir, image_size=image_size)._frame_filenames
-        prev_val_filenames = cls.from_snapshot(fpath=val_fpath, annotations_dir=annotations_dir, image_size=image_size)._frame_filenames
-        prev_test_filenames = cls.from_snapshot(fpath=test_fpath, annotations_dir=annotations_dir, image_size=image_size)._frame_filenames
+        prev_train_filenames = cls.from_snapshot(
+            fpath=train_fpath, annotations_dir=annotations_dir, image_size=image_size
+        )._frame_filenames
+        prev_val_filenames = cls.from_snapshot(
+            fpath=val_fpath, annotations_dir=annotations_dir, image_size=image_size
+        )._frame_filenames
+        prev_test_filenames = cls.from_snapshot(
+            fpath=test_fpath, annotations_dir=annotations_dir, image_size=image_size
+        )._frame_filenames
         prev_filenames = set(prev_train_filenames) | set(prev_val_filenames) | set(prev_test_filenames)
         ext_filenames = set(frame_filenames) - prev_filenames
-        
-        new_test_filenames = np.random.choice(list(ext_filenames), size=len(prev_test_filenames), replace=False)
+
+        new_test_filenames = np.random.choice(list(ext_filenames), size=len(prev_test_filenames), replace=False)  # type: ignore
         new_train_filenames = list(ext_filenames - set(new_test_filenames)) + prev_test_filenames + prev_train_filenames
 
         train = cls(
             frames_dir=frames_dir,
             annotations_dir=annotations_dir,
             image_size=image_size,
-            frame_filenames=new_train_filenames,
+            frame_filenames=tuple([f.as_posix() for f in new_train_filenames]),
         )
         val = cls(
             frames_dir=frames_dir,
             annotations_dir=annotations_dir,
             image_size=image_size,
-            frame_filenames=prev_val_filenames,
+            frame_filenames=tuple([f.as_posix() for f in prev_val_filenames]),
         )
         test = cls(
             frames_dir=frames_dir,
             annotations_dir=annotations_dir,
             image_size=image_size,
-            frame_filenames=new_test_filenames,
+            frame_filenames=tuple([f.as_posix() for f in new_test_filenames]),
         )
         return train, val, test
 
@@ -243,7 +247,9 @@ class AnimalDataset(Dataset):
         df.to_csv(fpath, index=False)
 
     @classmethod
-    def from_snapshot(cls, fpath: str, annotations_dir: str = cfg.ANNOTATIONS_DIR, image_size: ImageSize = DEFAULT_IMAGE_SIZE) -> "AnimalDataset":
+    def from_snapshot(
+        cls, fpath: str, annotations_dir: str = cfg.ANNOTATIONS_DIR, image_size: ImageSize = DEFAULT_IMAGE_SIZE
+    ) -> "AnimalDataset":
         """Loads the dataset from a csv file
 
         Args:
