@@ -1,3 +1,7 @@
+import json
+import shutil
+import sys
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
@@ -108,7 +112,7 @@ def training(
         model=model,
         loss_function=loss_function,
         optimizer=optimizer,
-        num_epochs=2,
+        num_epochs=num_epochs,
         batch_size=batch_size,
         model_dir=model_dir,
     )
@@ -239,6 +243,135 @@ def inference(
         animal_label = AnimalLabel.from_score(score=score, threshold=threshold)
         typer.echo(f"Image displays a {animal_label.name.lower()}")
         return animal_label
+
+
+@app.command()
+def train_valid_model(
+    model_filename: str,
+    train_filepath: str,
+    val_filepath: str,
+    test_filepath: str,
+    frames_dir: str = cfg.FRAMES_DIR,
+    annotations_dir: str = cfg.ANNOTATIONS_DIR,
+    model_dir: str = cfg.MODEL_DIR,
+    train_frac: float = cfg.TRAIN_FRAC,
+    val_frac: float = cfg.VAL_FRAC,
+    test_frac: float = cfg.TEST_FRAC,
+    batch_size: int = cfg.BATCH_SIZE,
+    lr: float = cfg.LEARNING_RATE,
+    weight_decay: float = cfg.WEIGHT_DECAY,
+    num_epochs: int = cfg.NUM_EPOCHS,
+    min_accuracy_validation: float = cfg.MIN_ACCURACY_VALIDATION,
+):
+    """
+    Pipeline to train/validate cats/dogs classifier
+
+    Args:
+        model_filename: name of stored model to use for inference
+        train_filepath: path of file to store train dataset
+        val_filepath: path of file to store val dataset
+        test_filepath: path of file to store test dataset
+        frames_dir: path to the directory containing the frames
+        annotations_dir: path to the directory containing the annotations
+        train_frac: float indicating the fraction of the split to use for training
+        val_frac: float indicating the fraction of the split to use for validation
+        test_frac: float indicating the fraction of the split to use for testing
+        model_dir: path to folder where model will be stored locally to cache them
+        batch_size: batch size in datasets
+        lr: learning rate
+        weight_decay: weight decay (L2 penalty)
+        num_epochs: number of epochs to train for
+        min_accuracy_validation: minimum accuracy required for model to be deployed
+    """
+    # Read current version
+    prev_model_fnames = [f.stem for f in Path(model_dir).glob("*.pth") if "_latest" not in f.name]
+    versions = []
+    for f in prev_model_fnames:
+        fname_split = f.split("_v")
+        if (fname_split[0] == model_filename) and fname_split[-1].isdigit():
+            versions.append(int(fname_split[-1]))
+    prev_version = max(versions) if versions else 0
+    current_version = prev_version + 1
+    current_model_filename = f"{model_filename}_v{current_version}"
+    current_train_filepath = train_filepath.replace(".csv", f"_v{current_version}.csv")
+    current_val_filepath = val_filepath.replace(".csv", f"_v{current_version}.csv")
+    current_test_filepath = test_filepath.replace(".csv", f"_v{current_version}.csv")
+
+    # copy prev files to new version to extend them if they exist
+    if prev_version > 0:
+        prev_train_filepath = train_filepath.replace(".csv", f"_v{prev_version}.csv")
+        prev_val_filepath = val_filepath.replace(".csv", f"_v{prev_version}.csv")
+        prev_test_filepath = test_filepath.replace(".csv", f"_v{prev_version}.csv")
+        shutil.copy(prev_train_filepath, current_train_filepath)
+        shutil.copy(prev_val_filepath, current_val_filepath)
+        shutil.copy(prev_test_filepath, current_test_filepath)
+
+    # 1. Create/extend dataset splits
+    dataset_split(
+        train_filepath=current_train_filepath,
+        val_filepath=current_val_filepath,
+        test_filepath=current_test_filepath,
+        frames_dir=frames_dir,
+        annotations_dir=annotations_dir,
+        train_frac=train_frac,
+        val_frac=val_frac,
+        test_frac=test_frac,
+    )
+
+    # 2. Train model
+    training(
+        train_filepath=current_train_filepath,
+        val_filepath=current_val_filepath,
+        model_filename=current_model_filename,
+        annotations_dir=annotations_dir,
+        model_dir=model_dir,
+        batch_size=batch_size,
+        lr=lr,
+        weight_decay=weight_decay,
+        num_epochs=num_epochs,
+    )
+
+    # 3. Compare against previous version, if it exists
+    is_better_model = True
+    if prev_version > 0:
+        prev_model_filename = f"{model_filename}_v{prev_version}"
+        is_better_model = evaluation(
+            base_model_filename=f"{prev_model_filename}.pth",
+            test_model_filename=f"{current_model_filename}.pth",
+            dataset_filepath=current_val_filepath,
+            annotations_dir=annotations_dir,
+            model_dir=model_dir,
+            batch_size=batch_size,
+        )
+
+    # 4. Validate model
+    is_valid_model = validation(
+        model_filename=f"{current_model_filename}.pth",
+        dataset_filepath=current_test_filepath,
+        annotations_dir=annotations_dir,
+        model_dir=model_dir,
+        batch_size=batch_size,
+        min_accuracy_validation=min_accuracy_validation,
+    )
+
+    # 5. Update info of last training
+    info = {"date": datetime.now().strftime("%Y-%m-%d"), "num_items": len(list(Path(annotations_dir).rglob("*.json")))}
+    with open(Path("info/last_training.json"), "w") as f:  # type: ignore
+        json.dump(info, f, indent=4)  # type: ignore
+
+    # 6. Clean up
+    if is_better_model and is_valid_model:
+        typer.echo("Newly trained model improves current one")
+        sys.exit(0)  # Indicate success with a status code of 0
+    else:
+        # remove model and snapshots
+        (Path(model_dir) / f"{current_model_filename}.pth").unlink()
+        (Path(model_dir) / f"{current_model_filename}_latest.pth").unlink()
+        Path(current_train_filepath).unlink()
+        Path(current_val_filepath).unlink()
+        Path(current_test_filepath).unlink()
+        typer.echo("Newly trained model does not improve current one")
+        sys.exit(1)
 
 
 if __name__ == "__main__":

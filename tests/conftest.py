@@ -131,7 +131,7 @@ def state_info(model: AnimalNet) -> StateInfo:
 
 @pytest.fixture
 def model_fpath(model: AnimalNet, model_dir: Path, state_info: StateInfo) -> Path:
-    model_fpath = model_dir / "CatsAndDogsTest"
+    model_fpath = model_dir / "CatsAndDogsTest_v1.pth"
     torch.save(
         {
             "epoch": state_info.epoch,

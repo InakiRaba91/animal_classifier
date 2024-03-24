@@ -31,7 +31,7 @@ class TestAnimalNet:
         assert compare_state_dicts(state_dict1=checkpoint["model_state_dict"], state_dict2=model.state_dict())
 
     def test_load(self, model: AnimalNet, state_info: StateInfo, model_dir: str, model_fpath: str):
-        state_info_loaded = model.load(model_filename=model_fpath.stem, model_dir=model_dir)
+        state_info_loaded = model.load(model_filename=model_fpath.name, model_dir=model_dir)
         assert state_info_loaded == state_info
         checkpoint = torch.load(model_fpath)
         assert compare_state_dicts(state_dict1=checkpoint["model_state_dict"], state_dict2=model.state_dict())
