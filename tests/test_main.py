@@ -1,3 +1,4 @@
+import json
 import os
 import shutil
 from pathlib import Path
@@ -21,6 +22,10 @@ class TestCLI:
             "val": data_dir / "val.csv",
             "test": data_dir / "test.csv",
         }
+
+    @pytest.fixture
+    def summary_fpath(self, tmpdir_factory) -> Path:
+        return tmpdir_factory.getbasetemp() / "info.json"
 
     def test_app_dataset_split(self, snapshot_fpaths: dict[str, Path], frames_dir: str, annotations_dir: str, num_frames: int):
         train_frac, val_frac, test_frac = 0.6, 0.2, 0.2
@@ -241,12 +246,13 @@ class TestCLI:
         annotations_dir: str,
         test_accuracy: float,
         exit_code: int,
+        summary_fpath: Path,
     ):
         train_frac, val_frac, test_frac = 0.6, 0.2, 0.2
         base_model_filename = "CatsAndDogsTest"
         min_accuracy_validation = 0.5
-        expected_num_snapshots, expected_num_models = 0, 0
         val_accuracy_train = 1.0
+        expected_num_snapshots, expected_num_models = 0, 0
         if test_accuracy > min_accuracy_validation:
             expected_num_snapshots, expected_num_models = 3, 2
         args = [
@@ -271,6 +277,8 @@ class TestCLI:
             min_accuracy_validation,
             "--num-epochs",
             1,
+            "--summary-file",
+            str(summary_fpath),
         ]
         accuracies = [val_accuracy_train, test_accuracy]
 
@@ -284,6 +292,7 @@ class TestCLI:
         assert result.exit_code == exit_code
         assert num_snapshots == expected_num_snapshots
         assert num_models == expected_num_models
+        assert summary_fpath.exists()
 
     @pytest.mark.parametrize("test_accuracy", [0.0, 1.0])
     @pytest.mark.parametrize("val_accuracy", [0.0, 1.0])
@@ -298,6 +307,7 @@ class TestCLI:
         val_accuracy: int,
         num_frames: int,
         model_fpath: Path,  # needed so there's an existing model to compare against
+        summary_fpath: Path,
     ):
         # setup
         train_fpath, val_fpath, test_fpath = [snapshot_fpaths[key] for key in ["train", "val", "test"]]
@@ -315,6 +325,11 @@ class TestCLI:
             shutil.copy(f"{frames_dir}/0.png", f"{frames_dir}/{idx}.png")
             shutil.copy(f"{annotations_dir}/0.json", f"{annotations_dir}/{idx}.json")
         shutil.copy(model_fpath, model_dir / f"{model_fpath.stem}_latest.pth")
+
+        orig_date = "2021-01-01"
+        info = {"date": orig_date, "num_items": num_frames}
+        with open(summary_fpath, "w") as f:  # type: ignore
+            json.dump(info, f, indent=4)  # type: ignore
 
         base_model_filename = model_fpath.stem.split("_")[0]
         min_accuracy_validation = 0.5
@@ -347,6 +362,8 @@ class TestCLI:
             min_accuracy_validation,
             "--num-epochs",
             1,
+            "--summary-file",
+            str(summary_fpath),
         ]
         accuracies = [val_accuracy_train, ref_accuracy, val_accuracy, test_accuracy]
 
@@ -360,3 +377,7 @@ class TestCLI:
         assert result.exit_code == exit_code
         assert num_snapshots == expected_num_snapshots
         assert num_models == expected_num_models
+        with open(summary_fpath, "r") as f:
+            info = json.load(f)
+        assert info["date"] != orig_date
+        assert info["num_items"] == 2 * num_frames

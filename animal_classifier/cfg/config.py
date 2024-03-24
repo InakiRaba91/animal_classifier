@@ -56,6 +56,7 @@ class GlobalConfig(BaseSettings):
     WEIGHT_DECAY: float = 0.0
     NUM_EPOCHS: int = 3
     THRESHOLD: float = 0.5
+    SUMMARY_FILE: str = (ROOT_PATH / "info/last_training.json").as_posix()
 
     # pydantic config
     model_config = SettingsConfigDict(

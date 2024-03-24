@@ -262,6 +262,7 @@ def train_valid_model(
     weight_decay: float = cfg.WEIGHT_DECAY,
     num_epochs: int = cfg.NUM_EPOCHS,
     min_accuracy_validation: float = cfg.MIN_ACCURACY_VALIDATION,
+    summary_file: str = cfg.SUMMARY_FILE,
 ):
     """
     Pipeline to train/validate cats/dogs classifier
@@ -282,6 +283,7 @@ def train_valid_model(
         weight_decay: weight decay (L2 penalty)
         num_epochs: number of epochs to train for
         min_accuracy_validation: minimum accuracy required for model to be deployed
+        summary_file: path to file where to store summary of last training
     """
     # Read current version
     prev_model_fnames = [f.stem for f in Path(model_dir).glob("*.pth") if "_latest" not in f.name]
@@ -356,7 +358,7 @@ def train_valid_model(
 
     # 5. Update info of last training
     info = {"date": datetime.now().strftime("%Y-%m-%d"), "num_items": len(list(Path(annotations_dir).rglob("*.json")))}
-    with open(Path("info/last_training.json"), "w") as f:  # type: ignore
+    with open(Path(summary_file), "w") as f:  # type: ignore
         json.dump(info, f, indent=4)  # type: ignore
 
     # 6. Clean up
