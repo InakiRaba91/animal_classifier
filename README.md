@@ -39,7 +39,7 @@ poetry run python -m animal_classifier validation base_model.pth data/test.csv -
 
 First you need to package your model. To do so, execute the following command from `apps/animal_classifier`:
 ```bash
-poetry run torch-model-archiver --model-name animal --version 1.0 --model-file animal_classifier/models/model.py --serialized-file ./models/cats_and_dogs/base_model.pth --handler animal_classifier/api/torchserve/handler.py --export-path ./model_store/
+poetry run torch-model-archiver --model-name animal --version 1.0 --model-file animal_classifier/models/model.py --serialized-file ./models/cats_and_dogs/base_model.pth --handler animal_classifier/api/model/handler.py --export-path ./model_store/
 ```
 
 Then, you can serve your  in a Docker container. Go back to the root directory and run:

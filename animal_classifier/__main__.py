@@ -198,11 +198,11 @@ def validation(
     loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
     model_accuracy = model_evaluation(model=base_model, loader=loader)
 
-    if model_accuracy > min_accuracy_validation:
-        typer.echo(f"Model is ready for deployment: {model_accuracy=} > {min_accuracy_validation=}")
+    if model_accuracy >= min_accuracy_validation:
+        typer.echo(f"Model is ready for deployment: {model_accuracy=} >= {min_accuracy_validation=}")
         return True
     else:
-        typer.echo(f"Model is not ready for deployment: {model_accuracy=} <= {min_accuracy_validation=}")
+        typer.echo(f"Model is not ready for deployment: {model_accuracy=} < {min_accuracy_validation=}")
         return False
 
 

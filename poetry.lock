@@ -3390,12 +3390,12 @@ enum-compat = "*"
 
 [[package]]
 name = "torchserve"
-version = "0.9.0"
+version = "0.10.0"
 description = "TorchServe is a tool for serving neural net models for inference"
 optional = false
 python-versions = "*"
 files = [
-    {file = "torchserve-0.9.0-py3-none-any.whl", hash = "sha256:58114c9c0fbd5ac0ac9c1545f900a8eff523537a2cc15f1e9fb16ed86f8cd52c"},
+    {file = "torchserve-0.10.0-py3-none-any.whl", hash = "sha256:3e55c420059ee36d213ed4136e756f4ce60e7ca30128795f5abd935da2ad53e5"},
 ]
 
 [package.dependencies]
@@ -3699,4 +3699,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "~3.11"
-content-hash = "f63f6d46e06a42226d234dbbe0ae5ec1a0fca8917afa7c17ee919e3e8a22912b"
+content-hash = "4080bf57a94493fa565555318956801dc5a3230cf89a360d795da2e55bb92374"
