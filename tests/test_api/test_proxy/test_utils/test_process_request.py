@@ -2,16 +2,13 @@ from unittest import mock
 from unittest.mock import patch
 
 import pytest
-from fastapi.testclient import TestClient
 
-from animal_classifier.api.proxy.service import ProxyConfig, app
+from animal_classifier.api.proxy.service import ProxyConfig
 from animal_classifier.api.proxy.utils.process_request import (
     get_model_version,
     process_request,
 )
 from animal_classifier.cfg.config import DevConfig
-
-client = TestClient(app)
 
 
 @pytest.mark.parametrize("traffic", [0.1, 0.9])

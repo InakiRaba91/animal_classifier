@@ -1,6 +1,6 @@
 import base64
 
-from fastapi import FastAPI, File, Request, UploadFile
+from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi_health import health
@@ -9,8 +9,7 @@ from animal_classifier.api.proxy.base_types.animal_response import AnimalRespons
 from animal_classifier.api.proxy.base_types.base64_image import Base64ImageType
 from animal_classifier.api.proxy.base_types.label_source import LabelSource
 from animal_classifier.api.proxy.base_types.proxy_config import ProxyConfig
-from animal_classifier.api.proxy.utils.process_request import process_request
-from animal_classifier.cfg import cfg
+from animal_classifier.api.proxy.utils import process_request, update_traffic
 
 # Load config on start-up
 CONFIG_FILE = "config/config.json"
@@ -67,17 +66,18 @@ def get_prediction_summary():
 def update_prediction_summary(version: int, label_source: LabelSource):
     """Update the prediction summary."""
     global prediction_summary
+    if version not in prediction_summary:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Version {version} is currently not deployed. Deployed versions are {list(prediction_summary.keys())}.",
+        )
     prediction_summary[version]["total"] += 1
     if label_source == LabelSource.AUTO:
         prediction_summary[version]["correct"] += 1
 
     # update traffic if necessary
     global config
-    quotient, remainder = divmod(prediction_summary[config.current_version]["total"], cfg.COUNT_TRAFFIC_UPDATE)
-    # if we hit the target count, increase traffic
-    idx_traffic_steps = quotient + 1
-    if remainder == 0 and idx_traffic_steps < len(cfg.TRAFFIC_STEPS):
-        config.increase_traffic()
+    config = update_traffic(config=config, prediction_summary=prediction_summary)
 
 
 @app.put("/api/reload-config", include_in_schema=False)
